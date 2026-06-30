@@ -42,5 +42,9 @@
     "*.{md,json,yml,yaml,html}": [
       "prettier --write"
     ]
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "telegraf": "^4.16.3"
   }
 }
