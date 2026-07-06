@@ -1,10 +1,10 @@
-import { startCommentBot } from "./bot/comment.bot";
+import { startCommentBot } from "./bot/bot";
 
 async function main() {
   await startCommentBot();
 }
 
-main().catch((err) => {
-  console.error("Failed to start:", err);
-  process.exit(1);
+main().catch((error) => {
+  console.error("Failed to start:", error);
+  process.exitCode = 1;
 });
