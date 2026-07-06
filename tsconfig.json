@@ -7,11 +7,8 @@
 
     // Environment Settings
     // See also https://aka.ms/tsconfig/module
-    "types": [],
-    // For nodejs:
-    // "lib": ["esnext"],
-    // "types": ["node"],
-    // and npm install -D @types/node
+    "types": ["node"],
+    "lib": ["ES2022", "DOM"],
 
     // Other Outputs
     "sourceMap": true,
