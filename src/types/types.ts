@@ -1,22 +1,16 @@
-// ─── Job ──────────────────────────────────────────────────────────────────────
-
 export interface CommentJob {
   fbLink: string;
-  comment: string;
+  comment?: string;
+  screenshotDir?: string;
   tagUser?: {
     uidOrName: string;
   };
 }
 
-// ─── Result ───────────────────────────────────────────────────────────────────
-
 export type CommentResult =
-  | { success: true; screenshotPath: string }
+  | { success: true; screenshotPath: string | null }
   | { success: false; screenshotPath: string | null; error: string };
 
-// ─── Internal ─────────────────────────────────────────────────────────────────
-
-/** sameSite value exported by the Chrome extension */
 export type ChromeSameSite =
   "no_restriction" | "lax" | "strict" | "unspecified" | string;
 

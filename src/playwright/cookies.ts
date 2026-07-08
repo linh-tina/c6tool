@@ -1,10 +1,10 @@
 import fs from "node:fs";
 import type { Cookie } from "playwright";
 
-import { COOKIES_PATH, SAME_SITE_MAP } from "../constants/constants";
+import { SAME_SITE_MAP } from "../constants/constants";
+import { getMessages } from "../constants/messages";
+import { Locale } from "../types/config";
 import type { RawCookie } from "../types/types";
-
-// ─── Normalize ────────────────────────────────────────────────────────────────
 
 const normalizeOne = (raw: RawCookie): Cookie => ({
   name: raw.name,
@@ -14,26 +14,32 @@ const normalizeOne = (raw: RawCookie): Cookie => ({
   secure: raw.secure ?? false,
   httpOnly: raw.httpOnly ?? false,
   sameSite: SAME_SITE_MAP[raw.sameSite?.toLowerCase() ?? ""] ?? "None",
-  // Playwright uses -1 to represent a session cookie with no expiry.
   expires: raw.expirationDate ?? -1,
 });
 
-// ─── Load ─────────────────────────────────────────────────────────────────────
+/**
+ * Loads and normalises Facebook cookies from the path provided by the user.
+ *
+ * @param cookiesPath - Absolute path to the cookies JSON file (from ResolvedConfig).
+ */
+export const loadCookies = (cookiesPath: string, locale: Locale): Cookie[] => {
+  const messages = getMessages(locale);
 
-export const loadCookies = (): Cookie[] => {
-  if (!fs.existsSync(COOKIES_PATH)) {
-    throw new Error(`Cookie file not found: ${COOKIES_PATH}`);
+  if (!fs.existsSync(cookiesPath)) {
+    throw new Error(
+      `${messages.cookies.fileNotFound(cookiesPath)}\n${messages.cookies.hint}`,
+    );
   }
 
   let parsed: unknown;
   try {
-    parsed = JSON.parse(fs.readFileSync(COOKIES_PATH, "utf-8"));
+    parsed = JSON.parse(fs.readFileSync(cookiesPath, "utf-8"));
   } catch {
-    throw new Error("Cookie file is not valid JSON.");
+    throw new Error(messages.cookies.invalidJson(cookiesPath));
   }
 
   if (!Array.isArray(parsed) || parsed.length === 0) {
-    throw new Error("Cookie file is empty or not an array.");
+    throw new Error(messages.cookies.emptyArray(cookiesPath));
   }
 
   return (parsed as RawCookie[]).map(normalizeOne);

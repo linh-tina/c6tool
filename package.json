@@ -3,11 +3,27 @@
   "version": "1.0.0",
   "description": "An automation system that allows users to post comments on Facebook posts through a Telegram Bot. The system uses Playwright to control a persistent Facebook session and processes comment requests asynchronously using a job queue.",
   "type": "commonjs",
-  "main": "dist/main.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
-    "dev": "tsx watch src/main.ts",
+    "dev": "tsx watch src/cli.ts",
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
     "build": "tsc -p tsconfig.json",
-    "start": "node dist/main.js",
+    "prepublishOnly": "npm run build",
+    "start": "node dist/cli.js",
+    "prepack": "npm run clean && npm run build",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
     "check": "npm run typecheck && npm run lint",
