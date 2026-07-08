@@ -1,0 +1,11 @@
+# .npmignore
+src/
+*.env
+.env*
+.eslintrc*
+tsconfig*
+.husky/
+.commitlintrc*
+node_modules/
+*.tgz
+cookes.json
