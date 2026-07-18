@@ -4,7 +4,6 @@ import { resolveConfig } from "../config/resolveConfig";
 import { getMessages } from "../constants/messages";
 import type { C6Config } from "../types/config";
 import { postCommentOnFacebook } from "../playwright/commenter";
-import { CommentGenerator } from "../ai/commentGenerator";
 import { log } from "../utils/logger";
 
 interface UserSession {
@@ -32,7 +31,6 @@ export async function startCommentBot(config: C6Config): Promise<void> {
   const resolvedConfig = resolveConfig(config);
   const messages = getMessages(resolvedConfig.locale);
   const bot = new Telegraf(resolvedConfig.botToken);
-  const commentGenerator = new CommentGenerator(resolvedConfig.aiComment);
   const userSessions = new Map<string, UserSession>();
 
   const isTelegramConflict = (error: unknown): boolean => {
@@ -77,12 +75,10 @@ export async function startCommentBot(config: C6Config): Promise<void> {
 
   const runJob = async (ctx: Context, fbLink: string): Promise<void> => {
     await ctx.reply(messages.bot.processing(fbLink));
-    const comment = await commentGenerator.generate(resolvedConfig.comment);
-
     const result = await postCommentOnFacebook(
       {
         fbLink,
-        ...(comment && { comment }),
+        ...(resolvedConfig.comment && { comment: resolvedConfig.comment }),
         ...(resolvedConfig.screenshotDir && {
           screenshotDir: resolvedConfig.screenshotDir,
         }),
