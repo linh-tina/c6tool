@@ -1,6 +1,6 @@
 {
   "name": "c6tool",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "An automation system that allows users to post comments on Facebook posts through a Telegram Bot. The system uses Playwright to control a persistent Facebook session and processes comment requests asynchronously using a job queue.",
   "type": "commonjs",
   "main": "dist/index.js",
