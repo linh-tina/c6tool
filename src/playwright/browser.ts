@@ -16,9 +16,10 @@ export interface BrowserHandle {
 export const createBrowserHandle = async (
   cookiesPath: string,
   locale: Locale,
+  headless = true,
 ): Promise<BrowserHandle> => {
   const browser = await chromium.launch({
-    headless: true,
+    headless,
     args: [...BROWSER_ARGS],
   });
 
