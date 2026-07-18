@@ -21,20 +21,23 @@ const findCommentBox = async (
   selectors: readonly string[],
   messages: ReturnType<typeof getMessages>,
 ) => {
-  for (const selector of selectors) {
-    try {
-      const element = await page.waitForSelector(selector, {
-        timeout: TIMEOUT.comment,
-      });
-      if (element) {
-        log.ok(messages.commenter.foundCommentBox(selector));
-        return element;
-      }
-    } catch {
-      // Ignore and continue with the next selector.
+  const visibleSelector = selectors
+    .map((selector) => `${selector}:visible`)
+    .join(", ");
+  const locator = page.locator(visibleSelector).first();
+
+  try {
+    await locator.waitFor({ state: "visible", timeout: TIMEOUT.comment });
+    if (!(await locator.isEditable())) return null;
+
+    const element = await locator.elementHandle();
+    if (element) {
+      log.ok(messages.commenter.foundCommentBox("combined Facebook selector"));
     }
+    return element;
+  } catch {
+    return null;
   }
-  return null;
 };
 
 const verifyCommentPosted = async (
@@ -64,12 +67,13 @@ export const postCommentOnFacebook = async (
   job: CommentJob,
   cookiesPath: string,
   locale: Locale,
+  headless = true,
 ): Promise<CommentResult> => {
   const messages = getMessages(locale);
   let handle: BrowserHandle | null = null;
 
   try {
-    handle = await createBrowserHandle(cookiesPath, locale);
+    handle = await createBrowserHandle(cookiesPath, locale, headless);
     const page: Page = await handle.context.newPage();
 
     log.step(messages.commenter.opening(job.fbLink));

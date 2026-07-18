@@ -117,6 +117,8 @@ export interface C6Config {
 - `comment`: text to post as the comment
 - `tagUser`: Facebook account to tag in the comment
 - `locale`: UI language, defaults to `Locale.EN`
+- `headless`: run Chromium without a visible window, defaults to `true`. Set to `false` to watch Playwright while testing.
+- `aiComment`: optionally generate short Vietnamese comment variants through Gemini.
 
 ### Defaults
 
@@ -136,6 +138,10 @@ When running the local bot entrypoint, the following env vars are used:
 - `DEFAULT_COMMENT` optional
 - `TAG_USER` optional
 - `LOCALE` optional, defaults to `en`, set to `vn` for Vietnamese output
+- `PLAYWRIGHT_HEADLESS` optional
+- `AI_COMMENT_ENABLED` optional
+- `GEMINI_MODEL` optional, defaults to `gemini-3.5-flash`
+- `GEMINI_API_KEY` required when AI comments are enabled
 
 Example:
 
@@ -146,7 +152,50 @@ SCREENSHOT_DIR=./screenshots
 DEFAULT_COMMENT=This is a great post!
 TAG_USER=sample.account
 LOCALE=en
+PLAYWRIGHT_HEADLESS=false
+AI_COMMENT_ENABLED=true
+AI_COMMENT_VARIANTS=5
+AI_COMMENT_MAX_WORDS=20
+GEMINI_MODEL=gemini-3.5-flash
+GEMINI_API_KEY=your-key-here
 ```
+
+To show the Playwright Chromium window during local testing, set `PLAYWRIGHT_HEADLESS=false` and run `pnpm dev` (or `npm run dev`).
+
+### Gemini AI comments
+
+Set a Gemini API key in `.env`:
+
+```env
+AI_COMMENT_ENABLED=true
+GEMINI_MODEL=gemini-3.5-flash
+GEMINI_API_KEY=your-key-here
+```
+
+Set `AI_COMMENT_ENABLED=true` to generate comment variants from `DEFAULT_COMMENT`. If `DEFAULT_COMMENT` is omitted, c6tool uses `Bạn này làm rẻ và đẹp nè bạn` as the source sentence. Every generated comment is validated to be no longer than 20 words, contain the price/value and quality meaning, and avoid links or hashtags. If Gemini is unavailable or returns invalid output, c6tool falls back to the source comment. Keep the API key only in `.env`; never commit it.
+
+### Langfuse prompt management
+
+The Gemini input is fetched from Langfuse instead of being hardcoded. The prompt can be fully self-contained or use these optional variables:
+
+```text
+{{sourceComment}}
+{{maxWords}}
+{{variants}}
+```
+
+Configure the prompt and project credentials in `.env`:
+
+```env
+LANGFUSE_BASE_URL=https://us.cloud.langfuse.com
+LANGFUSE_PUBLIC_KEY=pk-lf-...
+LANGFUSE_SECRET_KEY=sk-lf-...
+LANGFUSE_PROMPT_NAME=random-comment
+LANGFUSE_PROMPT_LABEL=production
+LANGFUSE_PROMPT_CACHE_TTL_SECONDS=300
+```
+
+The app fetches the labeled Langfuse prompt with Basic Auth, compiles any of the optional variables above, and caches it for 300 seconds. If Langfuse cannot be reached or the prompt is not a text prompt, c6tool safely uses the source comment instead. The `random-comment` prompt in this project is currently available with the `latest` label; assign it the `production` label in Langfuse before changing the environment back to `production`.
 
 ---
 
