@@ -30,6 +30,8 @@ export interface AICommentConfig {
   langfuseSecretKey?: string;
   /** Runtime cache duration for the prompt in seconds. */
   langfuseCacheTtlSeconds?: number;
+  /** Send prompt/model generations to Langfuse. Defaults to true when configured. */
+  langfuseTracingEnabled?: boolean;
 }
 
 export interface C6Config {
@@ -104,5 +106,6 @@ export interface ResolvedConfig {
     langfusePublicKey: string;
     langfuseSecretKey: string;
     langfuseCacheTtlSeconds: number;
+    langfuseTracingEnabled: boolean;
   };
 }

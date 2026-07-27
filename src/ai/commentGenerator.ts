@@ -1,5 +1,6 @@
 import type { ResolvedConfig } from "../types/config";
 import { log } from "../utils/logger";
+import { recordLangfuseGeneration } from "./langfuse";
 
 export const DEFAULT_COMMENT = "Bạn này làm rẻ và đẹp nè bạn";
 
@@ -18,6 +19,7 @@ interface GeneratedCommentsPayload {
 
 interface LangfusePromptResponse {
   prompt?: unknown;
+  version?: unknown;
   error?: { message?: string };
 }
 
@@ -90,6 +92,7 @@ const compilePrompt = (
 export class CommentGenerator {
   private readonly recentComments = new Set<string>();
   private cachedPrompt: { template: string; expiresAt: number } | null = null;
+  private cachedPromptVersion: number | undefined;
 
   public constructor(private readonly config: ResolvedConfig["aiComment"]) {}
 
@@ -144,6 +147,8 @@ export class CommentGenerator {
       template: payload.prompt,
       expiresAt: Date.now() + this.config.langfuseCacheTtlSeconds * 1_000,
     };
+    this.cachedPromptVersion =
+      typeof payload.version === "number" ? payload.version : undefined;
     return payload.prompt;
   }
 
@@ -210,6 +215,28 @@ export class CommentGenerator {
         if (oldest) this.recentComments.delete(oldest);
       }
       log.info(`AI comment selected: ${selected}`);
+      if (this.config.langfuseTracingEnabled) {
+        await recordLangfuseGeneration(
+          {
+            baseUrl: this.config.langfuseBaseUrl,
+            publicKey: this.config.langfusePublicKey,
+            secretKey: this.config.langfuseSecretKey,
+          },
+          {
+            name: "gemini-comment-generation",
+            prompt,
+            output: selected,
+            model: this.config.model,
+            promptName: this.config.langfusePromptName,
+            ...(this.cachedPromptVersion !== undefined && {
+              promptVersion: this.cachedPromptVersion,
+            }),
+            metadata: { sourceComment: source },
+          },
+        ).catch((traceError) => {
+          log.warn(`Langfuse trace unavailable; continuing. ${String(traceError)}`);
+        });
+      }
       return selected;
     } catch (error) {
       log.warn(

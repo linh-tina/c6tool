@@ -1,10 +1,10 @@
 # c6tool
 
-`c6tool` is a small npm library for launching a Telegram bot that posts a Facebook comment through Playwright.
+This project is a runner that uses the published `c6tool` npm package for Facebook automation, while keeping Gemini/Langfuse comment generation in the runner.
 
 It is designed as a library first:
 
-- import `startCommentBot()` from the package root
+- import `startCommentBot()` from the `c6tool` npm package
 - configure language with `Locale.EN` or `Locale.VN`
 - keep the bot text, errors, and logs in a single message catalog
 
@@ -193,9 +193,12 @@ LANGFUSE_SECRET_KEY=sk-lf-...
 LANGFUSE_PROMPT_NAME=random-comment
 LANGFUSE_PROMPT_LABEL=production
 LANGFUSE_PROMPT_CACHE_TTL_SECONDS=300
+LANGFUSE_TRACE_ENABLED=true
 ```
 
 The app fetches the labeled Langfuse prompt with Basic Auth, compiles any of the optional variables above, and caches it for 300 seconds. If Langfuse cannot be reached or the prompt is not a text prompt, c6tool safely uses the source comment instead. The `random-comment` prompt in this project is currently available with the `latest` label; assign it the `production` label in Langfuse before changing the environment back to `production`.
+
+Each successful Gemini generation is also recorded as a Langfuse trace/generation with the compiled prompt, output, model, prompt name, and prompt version. Set `LANGFUSE_TRACE_ENABLED=false` to disable this telemetry. To create a new version of a text prompt explicitly, call `saveLangfusePrompt({ baseUrl, publicKey, secretKey }, { name, prompt, labels })`; this is exported from the package root and does not run automatically for every comment.
 
 ---
 
@@ -211,6 +214,28 @@ or
 
 ```bash
 pnpm start
+```
+
+### PM2
+
+Build and start with the included PM2 configuration:
+
+```bash
+pnpm pm2:start
+```
+
+After code updates:
+
+```bash
+pnpm pm2:restart
+```
+
+PM2 runs `dist/cli.js`. The `pnpm pm2:start` command builds the project before launching it. If an older PM2 process still points to `dist/main.js`, remove it once and start the project again:
+
+```bash
+pm2 delete c6tool
+pnpm pm2:start
+pm2 save
 ```
 
 The library entry point is still `src/index.ts`, and the CLI bootstrap is separate.

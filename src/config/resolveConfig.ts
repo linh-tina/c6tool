@@ -11,7 +11,7 @@ const boundedInteger = (
   fallback: number,
 ): number => {
   if (!Number.isFinite(value)) return fallback;
-  return Math.max(1, Math.floor(value!));
+  return Math.max(1, Math.floor(value ?? fallback));
 };
 
 export const resolveConfig = (config: C6Config): ResolvedConfig => {
@@ -58,6 +58,7 @@ export const resolveConfig = (config: C6Config): ResolvedConfig => {
           DEFAULT_LANGFUSE_CACHE_TTL_SECONDS,
         ),
       ),
+      langfuseTracingEnabled: config.aiComment?.langfuseTracingEnabled ?? true,
     },
   };
 };
