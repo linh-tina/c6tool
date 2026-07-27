@@ -1,6 +1,6 @@
 # c6tool
 
-This project is a runner that uses the published `c6tool` npm package for Facebook automation, while keeping Gemini/Langfuse comment generation in the runner.
+This project is a runner that uses the published `c6tool` npm package for Facebook automation, with free local Vietnamese synonym comment generation.
 
 It is designed as a library first:
 
@@ -118,7 +118,7 @@ export interface C6Config {
 - `tagUser`: Facebook account to tag in the comment
 - `locale`: UI language, defaults to `Locale.EN`
 - `headless`: run Chromium without a visible window, defaults to `true`. Set to `false` to watch Playwright while testing.
-- `aiComment`: optionally generate short Vietnamese comment variants through Gemini.
+- `aiComment`: optionally generate short Vietnamese comment variants locally.
 
 ### Defaults
 
@@ -140,8 +140,8 @@ When running the local bot entrypoint, the following env vars are used:
 - `LOCALE` optional, defaults to `en`, set to `vn` for Vietnamese output
 - `PLAYWRIGHT_HEADLESS` optional
 - `AI_COMMENT_ENABLED` optional
-- `GEMINI_MODEL` optional, defaults to `gemini-3.5-flash`
-- `GEMINI_API_KEY` required when AI comments are enabled
+- `AI_COMMENT_VARIANTS` optional, defaults to `5`
+- `AI_COMMENT_MAX_WORDS` optional, defaults to `20`
 
 Example:
 
@@ -156,49 +156,28 @@ PLAYWRIGHT_HEADLESS=false
 AI_COMMENT_ENABLED=true
 AI_COMMENT_VARIANTS=5
 AI_COMMENT_MAX_WORDS=20
-GEMINI_MODEL=gemini-3.5-flash
-GEMINI_API_KEY=your-key-here
 ```
 
 To show the Playwright Chromium window during local testing, set `PLAYWRIGHT_HEADLESS=false` and run `pnpm dev` (or `npm run dev`).
 
-### Gemini AI comments
+### Local synonym comments
 
-Set a Gemini API key in `.env`:
+Enable local comment generation in `.env`:
 
 ```env
 AI_COMMENT_ENABLED=true
-GEMINI_MODEL=gemini-3.5-flash
-GEMINI_API_KEY=your-key-here
+AI_COMMENT_VARIANTS=5
+AI_COMMENT_MAX_WORDS=20
 ```
 
-Set `AI_COMMENT_ENABLED=true` to generate comment variants from `DEFAULT_COMMENT`. If `DEFAULT_COMMENT` is omitted, c6tool uses `Bạn này làm rẻ và đẹp nè bạn` as the source sentence. Every generated comment is validated to be no longer than 20 words, contain the price/value and quality meaning, and avoid links or hashtags. If Gemini is unavailable or returns invalid output, c6tool falls back to the source comment. Keep the API key only in `.env`; never commit it.
-
-### Langfuse prompt management
-
-The Gemini input is fetched from Langfuse instead of being hardcoded. The prompt can be fully self-contained or use these optional variables:
-
-```text
-{{sourceComment}}
-{{maxWords}}
-{{variants}}
-```
-
-Configure the prompt and project credentials in `.env`:
-
-```env
-LANGFUSE_BASE_URL=https://us.cloud.langfuse.com
-LANGFUSE_PUBLIC_KEY=pk-lf-...
-LANGFUSE_SECRET_KEY=sk-lf-...
-LANGFUSE_PROMPT_NAME=random-comment
-LANGFUSE_PROMPT_LABEL=production
-LANGFUSE_PROMPT_CACHE_TTL_SECONDS=300
-LANGFUSE_TRACE_ENABLED=true
-```
-
-The app fetches the labeled Langfuse prompt with Basic Auth, compiles any of the optional variables above, and caches it for 300 seconds. If Langfuse cannot be reached or the prompt is not a text prompt, c6tool safely uses the source comment instead. The `random-comment` prompt in this project is currently available with the `latest` label; assign it the `production` label in Langfuse before changing the environment back to `production`.
-
-Each successful Gemini generation is also recorded as a Langfuse trace/generation with the compiled prompt, output, model, prompt name, and prompt version. Set `LANGFUSE_TRACE_ENABLED=false` to disable this telemetry. To create a new version of a text prompt explicitly, call `saveLangfusePrompt({ baseUrl, publicKey, secretKey }, { name, prompt, labels })`; this is exported from the package root and does not run automatically for every comment.
+The generator uses the public MIT-licensed `@vntk/dictionary` npm package to
+validate Vietnamese synonym words. It randomly selects from 100 complete
+comments stored in `src/data/commentVariants.json` and avoids repeating the
+20 most recent choices. It runs entirely on the local machine, makes no remote
+API requests, needs no API key, and has no usage fee. Every selected comment
+is validated to be no longer than 20 words, contain both price/value and
+quality meaning, and avoid links or hashtags. If local generation cannot
+produce a valid result, c6tool uses `DEFAULT_COMMENT`.
 
 ---
 

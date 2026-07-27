@@ -21,16 +21,8 @@ export const configFromEnv = (
   const screenshotDir = optional(env.SCREENSHOT_DIR);
   const comment = optional(env.DEFAULT_COMMENT);
   const tagUser = optional(env.TAG_USER);
-  const model = optional(env.GEMINI_MODEL);
   const variants = number(env.AI_COMMENT_VARIANTS);
   const maxWords = number(env.AI_COMMENT_MAX_WORDS);
-  const apiKey = optional(env.GEMINI_API_KEY);
-  const promptName = optional(env.LANGFUSE_PROMPT_NAME);
-  const promptLabel = optional(env.LANGFUSE_PROMPT_LABEL);
-  const baseUrl = optional(env.LANGFUSE_BASE_URL);
-  const publicKey = optional(env.LANGFUSE_PUBLIC_KEY);
-  const secretKey = optional(env.LANGFUSE_SECRET_KEY);
-  const cacheTtl = number(env.LANGFUSE_PROMPT_CACHE_TTL_SECONDS);
 
   return {
     botToken: env.BOT_TOKEN ?? "",
@@ -42,19 +34,8 @@ export const configFromEnv = (
     headless: boolean(env.PLAYWRIGHT_HEADLESS, true),
     aiComment: {
       enabled: boolean(env.AI_COMMENT_ENABLED, false),
-      ...(model && { model }),
       ...(variants !== undefined && { variants }),
       ...(maxWords !== undefined && { maxWords }),
-      ...(apiKey && { apiKey }),
-      ...(promptName && { langfusePromptName: promptName }),
-      ...(promptLabel && { langfusePromptLabel: promptLabel }),
-      ...(baseUrl && { langfuseBaseUrl: baseUrl }),
-      ...(publicKey && { langfusePublicKey: publicKey }),
-      ...(secretKey && { langfuseSecretKey: secretKey }),
-      ...(cacheTtl !== undefined && { langfuseCacheTtlSeconds: cacheTtl }),
-      ...(env.LANGFUSE_TRACE_ENABLED !== undefined && {
-        langfuseTracingEnabled: boolean(env.LANGFUSE_TRACE_ENABLED, true),
-      }),
     },
   };
 };

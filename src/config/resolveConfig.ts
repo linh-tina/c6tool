@@ -1,8 +1,6 @@
 import path from "node:path";
 import { Locale, type C6Config, type ResolvedConfig } from "../types/config";
 
-const DEFAULT_AI_MODEL = "gemini-3.5-flash";
-const DEFAULT_LANGFUSE_CACHE_TTL_SECONDS = 300;
 const DEFAULT_AI_VARIANTS = 5;
 const DEFAULT_AI_MAX_WORDS = 20;
 
@@ -35,7 +33,6 @@ export const resolveConfig = (config: C6Config): ResolvedConfig => {
     headless: config.headless ?? true,
     aiComment: {
       enabled: config.aiComment?.enabled ?? false,
-      model: config.aiComment?.model?.trim() || DEFAULT_AI_MODEL,
       variants: Math.min(
         10,
         boundedInteger(config.aiComment?.variants, DEFAULT_AI_VARIANTS),
@@ -44,21 +41,6 @@ export const resolveConfig = (config: C6Config): ResolvedConfig => {
         20,
         boundedInteger(config.aiComment?.maxWords, DEFAULT_AI_MAX_WORDS),
       ),
-      apiKey: config.aiComment?.apiKey?.trim() || "",
-      langfusePromptName: config.aiComment?.langfusePromptName?.trim() || "",
-      langfusePromptLabel:
-        config.aiComment?.langfusePromptLabel?.trim() || "production",
-      langfuseBaseUrl: config.aiComment?.langfuseBaseUrl?.trim() || "",
-      langfusePublicKey: config.aiComment?.langfusePublicKey?.trim() || "",
-      langfuseSecretKey: config.aiComment?.langfuseSecretKey?.trim() || "",
-      langfuseCacheTtlSeconds: Math.min(
-        3_600,
-        boundedInteger(
-          config.aiComment?.langfuseCacheTtlSeconds,
-          DEFAULT_LANGFUSE_CACHE_TTL_SECONDS,
-        ),
-      ),
-      langfuseTracingEnabled: config.aiComment?.langfuseTracingEnabled ?? true,
     },
   };
 };

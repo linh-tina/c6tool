@@ -1,4 +1,4 @@
 export { resolveConfig } from "./config/resolveConfig";
-export { saveLangfusePrompt } from "./ai/langfuse";
+// Remote AI and Langfuse APIs are intentionally disabled.
 export { Locale } from "./types/config";
 export type { AICommentConfig, C6Config, ResolvedConfig } from "./types/config";
