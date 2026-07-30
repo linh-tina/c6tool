@@ -1,4 +1,4 @@
-import type { Page } from "playwright";
+import type { Locator, Page } from "playwright";
 
 import { AUTH_FAILURE_PATTERNS, DELAY, TIMEOUT } from "../constants/constants";
 import { getMessages } from "../constants/messages";
@@ -12,6 +12,8 @@ import { log } from "../utils/logger";
 import { Locale } from "../types/config";
 import type { CommentJob, CommentResult } from "../types/types";
 import { captureScreenshot } from "../utils/screenshot";
+
+const MAX_TAG_SELECTION_ATTEMPTS = 3;
 
 const isAuthFailure = (url: string): boolean =>
   AUTH_FAILURE_PATTERNS.some((pattern) => url.includes(pattern));
@@ -54,6 +56,96 @@ const verifyCommentPosted = async (
   } catch {
     return false;
   }
+};
+
+const normalizeTagTarget = (value: string): string =>
+  value.trim().replace(/^@/, "").toLocaleLowerCase();
+
+const hrefMatchesTagTarget = (href: string, targetName: string): boolean => {
+  const normalizedHref = href.toLocaleLowerCase();
+  const normalizedTarget = normalizeTagTarget(targetName);
+
+  return (
+    normalizedHref.includes(`/${normalizedTarget}`) ||
+    normalizedHref.includes(`id=${normalizedTarget}`)
+  );
+};
+
+const findTagOption = async (
+  page: Page,
+  targetName: string,
+): Promise<Locator | null> => {
+  const visibleOptions = page.locator('[role="option"]:visible');
+  const visibleOptionCount = await visibleOptions.count();
+
+  for (let index = 0; index < visibleOptionCount; index += 1) {
+    const option = visibleOptions.nth(index);
+    const links = option.locator("a[href]");
+    const linkCount = await links.count();
+
+    for (let linkIndex = 0; linkIndex < linkCount; linkIndex += 1) {
+      const href = await links.nth(linkIndex).getAttribute("href");
+      if (href && hrefMatchesTagTarget(href, targetName)) return option;
+    }
+  }
+
+  const optionWithMatchingText = visibleOptions
+    .filter({ hasText: targetName })
+    .first();
+  if (await optionWithMatchingText.isVisible()) return optionWithMatchingText;
+
+  // Facebook often displays a profile's full name instead of its username.
+  // Since the typeahead was opened with the full username, its first result is
+  // the best available match when the username is not present in visible text.
+  if (visibleOptionCount > 0) return visibleOptions.first();
+
+  const visibleSuggestionLinks = page.locator(
+    '[role="listbox"]:visible a[href]:visible',
+  );
+  const visibleLinkCount = await visibleSuggestionLinks.count();
+
+  for (let index = 0; index < visibleLinkCount; index += 1) {
+    const link = visibleSuggestionLinks.nth(index);
+    const href = await link.getAttribute("href");
+    if (href && hrefMatchesTagTarget(href, targetName)) return link;
+  }
+
+  return visibleLinkCount > 0 ? visibleSuggestionLinks.first() : null;
+};
+
+const selectTagOption = async (
+  page: Page,
+  targetName: string,
+  messages: ReturnType<typeof getMessages>,
+): Promise<boolean> => {
+  for (let attempt = 1; attempt <= MAX_TAG_SELECTION_ATTEMPTS; attempt += 1) {
+    try {
+      await page
+        .locator(
+          '[role="option"]:visible, [role="listbox"]:visible a[href]:visible',
+        )
+        .first()
+        .waitFor({ state: "visible", timeout: 2_000 });
+
+      const targetOption = await findTagOption(page, targetName);
+      if (!targetOption) throw new Error("No visible tag suggestion found.");
+      await targetOption.click();
+      log.ok(messages.commenter.tagSelected(targetName));
+      return true;
+    } catch (tagError) {
+      log.warn(messages.commenter.tagFallback);
+      log.error(messages.commenter.tagFailed(String(tagError)));
+
+      if (attempt < MAX_TAG_SELECTION_ATTEMPTS) {
+        log.step(
+          messages.commenter.tagRetry(attempt + 1, MAX_TAG_SELECTION_ATTEMPTS),
+        );
+        await page.waitForTimeout(1_000);
+      }
+    }
+  }
+
+  return false;
 };
 
 /**
@@ -135,22 +227,19 @@ export const postCommentOnFacebook = async (
       await humanType(commentBox, targetName);
       await page.waitForTimeout(2500);
 
-      try {
-        const targetOption = page
-          .locator('[role="option"]')
-          .filter({ hasText: targetName })
-          .first();
+      const tagSelected = await selectTagOption(page, targetName, messages);
+      if (!tagSelected) {
+        const error = messages.commenter.tagRetriesExhausted(
+          targetName,
+          MAX_TAG_SELECTION_ATTEMPTS,
+        );
+        log.error(error);
 
-        if (await targetOption.isVisible()) {
-          await targetOption.click();
-          log.ok(messages.commenter.tagSelected(targetName));
-        } else {
-          await commentBox.press("Tab");
-          log.warn(messages.commenter.tagFallback);
-        }
-      } catch (tagError) {
-        log.error(messages.commenter.tagFailed(String(tagError)));
-        await commentBox.press("Tab");
+        const screenshotPath = job.screenshotDir
+          ? await captureScreenshot(page, "err_tag_failed", job.screenshotDir)
+          : null;
+
+        return { success: false, screenshotPath, error };
       }
 
       await sleepRandom([1_000, 1_800]);

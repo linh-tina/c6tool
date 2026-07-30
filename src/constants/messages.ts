@@ -29,6 +29,8 @@ export type MessageBundle = {
     taggingAccount: (targetName: string) => string;
     tagSelected: (targetName: string) => string;
     tagFallback: string;
+    tagRetry: (attempt: number, maxAttempts: number) => string;
+    tagRetriesExhausted: (targetName: string, maxAttempts: number) => string;
     tagFailed: (error: string) => string;
     submitted: string;
     verifiedSuccess: string;
@@ -79,7 +81,11 @@ export const MESSAGE_BUNDLES: Record<Locale, MessageBundle> = {
       taggingAccount: (targetName: string) =>
         `Simulating tag for account: @${targetName}`,
       tagSelected: (targetName: string) => `Selected tag: ${targetName}`,
-      tagFallback: "Could not click the option, using Tab as fallback.",
+      tagFallback: "Could not find or click the tag option.",
+      tagRetry: (attempt: number, maxAttempts: number) =>
+        `Retrying tag selection (${attempt}/${maxAttempts})...`,
+      tagRetriesExhausted: (targetName: string, maxAttempts: number) =>
+        `Could not select tag "${targetName}" after ${maxAttempts} attempts. The comment was not submitted.`,
       tagFailed: (error: string) => `Tag selection failed: ${error}`,
       submitted: "Comment submitted, waiting for confirmation...",
       verifiedSuccess: "Comment posted successfully.",
@@ -151,7 +157,11 @@ export const MESSAGE_BUNDLES: Record<Locale, MessageBundle> = {
         `Mô phỏng tag tài khoản: @${targetName}`,
       tagSelected: (targetName: string) =>
         `Đã tìm thấy và click chọn tag: ${targetName}`,
-      tagFallback: "Không bắt được element, nhấn Tab dự phòng để chọn tag.",
+      tagFallback: "Không bắt được element để chọn tag.",
+      tagRetry: (attempt: number, maxAttempts: number) =>
+        `Đang thử chọn lại tag (lần ${attempt}/${maxAttempts})...`,
+      tagRetriesExhausted: (targetName: string, maxAttempts: number) =>
+        `Không thể chọn tag "${targetName}" sau ${maxAttempts} lần thử. Bình luận chưa được gửi.`,
       tagFailed: (error: string) => `Thao tác chọn thẻ tag thất bại: ${error}`,
       submitted: "Đã gửi bình luận, đang chờ xác nhận...",
       verifiedSuccess: "Bình luận đã được đăng thành công.",
@@ -170,6 +180,7 @@ export const MESSAGE_BUNDLES: Record<Locale, MessageBundle> = {
     },
     facebook: {
       commentBoxSelectors: [
+        '[contenteditable="true"][role="textbox"][aria-label^="Trả lời dưới" i]',
         '[contenteditable="true"][role="textbox"][aria-label^="Viết bình luận" i]',
         '[contenteditable="true"][role="textbox"][aria-label^="Để lại bình luận" i]',
         '[contenteditable="true"][role="textbox"][aria-label^="Thêm bình luận" i]',
@@ -179,6 +190,7 @@ export const MESSAGE_BUNDLES: Record<Locale, MessageBundle> = {
         '[contenteditable="true"][role="textbox"][aria-label^="Leave a comment" i]',
         '[contenteditable="true"][role="textbox"][aria-label^="Add a comment" i]',
         '[contenteditable="true"][role="textbox"][aria-label^="Comment as" i]',
+        '[contenteditable="true"][role="textbox"][aria-placeholder*="Trả lời dưới" i]',
         '[contenteditable="true"][role="textbox"][aria-placeholder*="bình luận" i]',
         '[contenteditable="true"][role="textbox"][aria-placeholder*="comment" i]',
         '[contenteditable="true"][role="textbox"][placeholder*="bình luận" i]',
