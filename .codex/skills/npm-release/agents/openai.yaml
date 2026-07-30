@@ -1,0 +1,4 @@
+interface:
+  display_name: "NPM Release"
+  short_description: "Publish verified npm releases with 2FA support"
+  default_prompt: "Use $npm-release to prepare, validate, and securely publish the next npm package version."

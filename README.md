@@ -179,6 +179,9 @@ The library entry point is still `src/index.ts`, and the CLI bootstrap is separa
 - The bot uses the language selected by `locale`.
 - If the cookies file is missing or invalid, startup fails with a clear error.
 - If another instance is already polling the same Telegram bot token, you will get a friendly `409 Conflict` message.
+- When tagging an account, the bot retries tag selection up to three times. If
+  the tag still cannot be selected, it reports an error and does not submit the
+  comment.
 - If a comment cannot be verified in the DOM, the bot still returns success but marks the screenshot as `warn_unverified`.
 
 ---
